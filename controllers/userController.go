@@ -147,4 +147,44 @@ func GetUsers() gin.HandlerFunc {
 }
 
 // func to get each user by user id
-func GetUser() {}
+func GetUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		requestUserId := c.Param("id")
+
+		// get claims from the context
+		claims, exists := c.Get("claims")
+		if exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error:": "Unauthorized"})
+			return
+		}
+
+		// type assertion to get the claims object
+		tokenClaims, ok := claims.(*helpers.Claims)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error:": "Invalid claims"})
+			return
+		}
+
+		userType := tokenClaims.Role
+		tokeUserId := tokenClaims.UserID
+
+		if userType != "ADMIN" && tokeUserId != requestUserId {
+			c.JSON(http.StatusUnauthorized, gin.H{"error:": "Unauthorized"})
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+
+		var user models.User
+		err := userCollection.FindOne(ctx, bson.M{"user_id": requestUserId}).Decode(&user)
+		if err != nil {
+
+			c.JSON(http.StatusNotFound, gin.H{"error:": "user not found"})
+			return
+		}
+
+		c.JSON(http.StatusOK, user)
+
+	}
+}

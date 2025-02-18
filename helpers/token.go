@@ -2,8 +2,10 @@ package helpers
 
 import (
 	"errors"
+	"time"
 
 	"github.com/golang-jwt/jwt"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Claims struct {
@@ -39,4 +41,51 @@ func ValidateToken(tokenString string) (*Claims, error) {
 
 	return nil, errors.New("invalid token")
 
+}
+
+func GenerateToken(email, userID, userType string) (string, string) {
+	tokenExpiry := time.Now().Add(24 * time.Hour).Unix()
+	refreshTokenExpiry := time.Now().Add(7 * 24 * time.Hour).Unix()
+
+	claims := &Claims{
+		Email:  email,
+		UserID: userID,
+		Role:   userType,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: tokenExpiry,
+		},
+	}
+
+	refreshClaims := &Claims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: refreshTokenExpiry,
+		},
+	}
+
+	// generate the tokesn
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	signedAccessToken, err := accessToken.SignedString(jwtKey)
+	if err != nil {
+		panic(err)
+	}
+
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodES256, refreshClaims)
+	signedRefreshToken, err := refreshToken.SignedString(jwtKey)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return signedAccessToken, signedRefreshToken
+}
+
+func HashPassword(password *string) *string {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(*password), bcrypt.DefaultCost)
+
+	if err != nil {
+		panic(err)
+	}
+
+	hashedPwd := string(bytes)
+	return &hashedPwd
 }

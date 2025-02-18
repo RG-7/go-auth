@@ -104,6 +104,12 @@ func UpdateAllToken(signedToken, signedRefereshToken, userID string) error {
 	return err
 }
 
+// Verify password
+func VerifyPassword(fondPwd, pwd string) (bool, error) {
+	err := bcrypt.CompareHashAndPassword([]byte(fondPwd), []byte(pwd))
+	return err == nil, err
+}
+
 func HashPassword(password *string) *string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(*password), bcrypt.DefaultCost)
 

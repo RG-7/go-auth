@@ -1,10 +1,13 @@
 package helpers
 
 import (
+	"context"
 	"errors"
 	"time"
 
+	"github.com/RG-7/go-auth/config"
 	"github.com/golang-jwt/jwt"
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -77,6 +80,28 @@ func GenerateToken(email, userID, userType string) (string, string) {
 	}
 
 	return signedAccessToken, signedRefreshToken
+}
+
+// updateAllToken
+func UpdateAllToken(signedToken, signedRefereshToken, userID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	//
+	userCollection := config.OpenCollection("users")
+
+	updateObj := bson.D{
+		{Key: "$set", Value: bson.D{
+			{Key: "token", Value: signedToken},
+			{Key: "refresh_token", Value: signedRefereshToken},
+			{Key: "updated_at", Value: time.Now()},
+		}},
+	}
+
+	filter := bson.M{"user_id": userID}
+
+	_, err := userCollection.UpdateOne(ctx, filter, updateObj)
+	return err
 }
 
 func HashPassword(password *string) *string {

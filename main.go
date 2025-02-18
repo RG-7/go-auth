@@ -19,5 +19,5 @@ func main() {
 
 	// start the server
 	r.Run(":8080")
-	log.Println("🚀Server is running on port: 8080")
+	log.Println(" 🚀 Server is running on port: 8080")
 }
